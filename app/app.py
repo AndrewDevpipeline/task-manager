@@ -150,6 +150,11 @@ def add_task():
     return "task added!", 200
 
 
+@app.route("/")
+def home_view():
+    return "<h1>Welcome to Andrew's task manager</h1>"
+
+
 @app.route("/task/edit", methods=["POST"])
 def update_task():
     data = request.json
@@ -362,6 +367,6 @@ def user_activate():
     return "user activated", 200
 
 
-if __name__ == "__main__":
-    create_all()
-    app.run(debug=True)
+# if __name__ == "__main__":
+#     create_all()
+#     app.run(debug=True)
