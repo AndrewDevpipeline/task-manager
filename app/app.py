@@ -108,9 +108,9 @@ def create_all():
 
     if admin_data == None:
         print("Tony Stark not found! Creating tony@gmail.com user...")
-        password = ''
-        while password == '' or password is None:
-            password = input(' Enter a password for Super Admin:')
+        password = '1234'
+        # while password == '' or password is None:
+        #     password = input(' Enter a password for Super Admin:')
 
         record = AppUsers('Tony Stark', 'super-admin',
                           'tony@gmail.com', password)
