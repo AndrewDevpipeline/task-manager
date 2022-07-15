@@ -9,6 +9,10 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import ForeignKey
 from datetime import datetime
 import marshmallow as ma
+from models.app_lanes import AppLanes, lane_schema, lanes_schema
+from models.app_tasks import AppTasks, task_schema, tasks_schema
+from models.app_users import AppUsers, user_schema, users_schema
+from db import db
 
 app = Flask(__name__)
 
@@ -17,119 +21,40 @@ database_name = "task_manager"
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://tnjapnudtdxjee:cd6f1837429535509d6fbbcb3f0dd2393f67ad9f522e1ac81b369a77d1b0b0a7@ec2-3-223-169-166.compute-1.amazonaws.com:5432/d3v1krq3omoim7'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-db = SQLAlchemy(app)
 ma = Marshmallow(app)
 
 
-class AppLanes(db.Model):
-    __tablename__ = "Lanes"
-    lane_id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(), nullable=False, unique=True)
-    order = db.Column(db.Integer, nullable=False, autoincrement=True)
-
-    def __init__(self, name, order):
-        self.name = name
-        self.order = order
-
-
-class AppLanesSchema(ma.Schema):
-    class Meta:
-        fields = ['lane_id', 'name', 'order']
-
-
-lanes_schema = AppLanesSchema()
-lanes_schema = AppLanesSchema(many=True)
-
-
-class AppUsers(db.Model):
-    __tablename__ = "Users"
-    user_id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(), nullable=False)
-    role = db.Column(db.String(), default='user', nullable=False)
-    created_date = db.Column(db.DateTime, default=datetime.utcnow)
-    email = db.Column(db.String(), nullable=False, unique=True)
-    password = db.Column(db.String(), nullable=False)
-    active = db.Column(db.Boolean(), nullable=False, default=False)
-
-    def __init__(self, name, role, email, password):
-        self.name = name
-        self.role = role
-        self.email = email
-        self.password = password,
-        self.active = True
-
-
-class AppUsersSchema(ma.Schema):
-    class Meta:
-        fields = ['user_id', 'name', 'role',
-                  'created_date', 'email', 'password', 'active']
-
-
-user_schema = AppUsersSchema()
-users_schema = AppUsersSchema(many=True)
-
-
-class AppTasks(db.Model):
-    __tablename__ = "Tasks"
-    task_id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(ForeignKey("Users.user_id"), nullable=True)
-    task_name = db.Column(db.String(), nullable=True)
-    task_description = db.Column(db.String(), nullable=True)
-    status = db.Column(ForeignKey("Lanes.lane_id"),
-                       default="backlog", nullable=False)
-    start_date = db.Column(db.DateTime, nullable=True)
-    finish_date = db.Column(db.DateTime, nullable=True)
-    active = db.Column(db.Boolean(), default=False, nullable=False)
-    index = db.Column(db.Integer, nullable=False)
-
-    def __init__(self, user_id, task_name, task_description, status,  index):
-        self.user_id = user_id
-        self.task_name = task_name
-        self.task_description = task_description
-        self.status = status
-        self.index = index
-
-
-class AppTasksSchema(ma.Schema):
-    class Meta:
-        fields = ['task_id', 'user_id', 'task_name', 'task_description',
-                  'status', 'start_date', 'finish_date', 'active', 'index']
-
-
-tasks_schema = AppTasksSchema()
-tasks_schema = AppTasksSchema(many=True)
-
-
 def create_all():
-    db.create_all()
-    print('Querying for Tony Stark...')
-    admin_data = db.session.query(AppUsers).filter(
-        AppUsers.email == "tony@gmail.com").first()
+    db.init_app(app)
+    with app.app_context():
+        db.create_all()
 
-    if admin_data == None:
-        print("Tony Stark not found! Creating tony@gmail.com user...")
-        password = '1234'
-        # while password == '' or password is None:
-        #     password = input(' Enter a password for Super Admin:')
+        print('Querying for Tony Stark...')
+        admin_data = db.session.query(AppUsers).filter(
+            AppUsers.email == "tony@gmail.com").first()
 
-        record = AppUsers('Tony Stark', 'super-admin',
-                          'tony@gmail.com', password)
+        if admin_data == None:
+            print("Tony Stark not found! Creating tony@gmail.com user...")
+            password = '1234'
 
-        db.session.add(record)
-        db.session.commit()
-        print("Tony Stark Created")
-    else:
-        print("Tony already exists!")
+            record = AppUsers('Tony Stark', 'super-admin',
+                              'tony@gmail.com', password)
 
-    print("Querying for backlog...")
-    lane_data = db.session.query(AppLanes).filter(
-        AppLanes.name == "backlog").first()
+            db.session.add(record)
+            db.session.commit()
+            print("Tony Stark Created")
+        else:
+            print("Tony already exists!")
 
-    if lane_data == None:
-        print("backlog does not exist. creating...")
-        record = AppLanes("backlog", 1)
-        db.session.add(record)
-        db.session.commit()
+        print("Querying for backlog...")
+        lane_data = db.session.query(AppLanes).filter(
+            AppLanes.name == "backlog").first()
+
+        if lane_data == None:
+            print("backlog does not exist. creating...")
+            record = AppLanes("backlog", 1)
+            db.session.add(record)
+            db.session.commit()
 
 
 @app.route("/task/add", methods=["POST"])
@@ -248,33 +173,6 @@ def lane_list():
     return jsonify(lanes_schema.dump(lanes)), 200
 
 
-# @app.route("/lane/deactivate", methods=["POST"])
-# def lane_deactivate():
-#     data = request.json
-#     lane_record = db.session.query(AppLanes).filter(
-#         AppLanes.lane_id == data["lane_id"]).first()
-
-#     if lane_record == None:
-#         return "lane doesnt exist", 400
-
-#     lane_record.active = False
-#     db.session.commit()
-#     return "lane deactivated", 200
-
-
-# @app.route("/lane/activate", methods=["POST"])
-# def lane_activate():
-    # data = request.json
-    # lane_record = db.session.query(AppLanes).filter(
-    #     AppLanes.lane_id == data["lane_id"]).first()
-
-    # if lane_record == None:
-    #     return "lane doesnt exist", 400
-
-    # lane_record.active = True
-    # db.session.commit()
-    # return "lane activated", 200
-
 @app.route("/lane/delete", methods=["DELETE"])
 def lane_delete():
     data = request.json
@@ -365,8 +263,3 @@ def user_activate():
     user_record.active = True
     db.session.commit()
     return "user activated", 200
-
-
-# if __name__ == "__main__":
-#     create_all()
-#     app.run(debug=True)
