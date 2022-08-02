@@ -18,7 +18,7 @@ app = Flask(__name__)
 
 database_host = "127.0.0.1:5432"
 database_name = "task_manager"
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://tnjapnudtdxjee:cd6f1837429535509d6fbbcb3f0dd2393f67ad9f522e1ac81b369a77d1b0b0a7@ec2-3-223-169-166.compute-1.amazonaws.com:5432/d3v1krq3omoim7'
+app.config['SQLALCHEMY_DATABASE_URI'] = ENV[DATABASE_URL]
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 ma = Marshmallow(app)
